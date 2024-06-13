@@ -22,6 +22,9 @@ from PyQt6 import QtWidgets, QtCore, QtGui
 from NanoVNASaver.Touchstone import Touchstone
 from NanoVNASaver.RFTools import Datapoint
 from NanoVNASaver.Windows.Defaults import make_scrollable
+from NanoVNASaver.Calculations import plot_time_domain_from_file as p
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +118,8 @@ class FilesWindow(QtWidgets.QWidget):
         except IOError as e:
             logger.exception("Error during file export: %s", e)
             return
-
+        p(filename)
+        
     def loadReferenceFile(self):
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(
             filter="Touchstone Files (*.s1p *.s2p);;All files (*.*)"
