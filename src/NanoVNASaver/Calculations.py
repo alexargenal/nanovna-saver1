@@ -7,7 +7,96 @@ import numpy as np
 #need to load filename 
 import os
 import czt
-#need to do computations on data
+import tkinter as tk
+import datetime
+from tkinter import filedialog
+
+def data_input() -> tuple:
+    # Create a Tkinter root window
+    root = tk.Tk()
+    root.withdraw()
+    
+    # Open file dialog for the first file
+    reference = filedialog.askopenfilename(title="Select the reference file")
+    
+    # Open file dialog for the second file
+      # Open file dialog for multiple files
+    files = filedialog.askopenfilenames(title="Select files")
+    
+    # Convert the files to a list
+    file_list = list(files)
+    # Prompt the user to enter a distance value
+    distance = float(tk.simpledialog.askstring("Enter Distance", "Enter the distance value in cm:"))
+    
+    return reference, file_list, distance
+
+def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distance: float) -> np.ndarray:
+    # Load the data from the reference file
+    freq_ref, re_ref, im_ref = load_data(reference_file)
+    
+    # Convert the reference data to time domain
+    time_ref, time_domain_signal_ref = convert_to_time_domain(freq_ref, re_ref, im_ref)
+    
+    # Initialize an empty list to store the epsilon r values and time/date tuples
+    time_date_tuples = []
+    peak_ref = np.max(time_domain_signal_ref)
+    index_ref = np.argmax(time_domain_signal_ref)
+
+    # Iterate over each file
+    for file in files:
+        # Load the data from the file
+        freq, re, im = load_data(file)
+        
+        # Convert the data to time domain
+        time, time_domain_signal = convert_to_time_domain(freq, re, im)
+        
+        # Find the time difference between the reference signal and the current signal
+        # Find the peak value of each signal
+        peak = np.max(time_domain_signal)
+    
+        # Find the indices of the peak values
+        index = np.argmax(time_domain_signal)
+    
+        # Find the time difference between the peaks
+        time_difference = index - index_ref
+        
+        # Calculate the epsilon r value
+        c=3e8
+        epsilon_r = (1 + (time_difference * c) / (distance)) ** 2
+        
+        # Extract the creation or last modified date of the file
+        file_stats = os.stat(file)
+        timestamp = max(file_stats.st_ctime, file_stats.st_mtime)
+        current_date = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M')
+        
+        # Create a tuple with the time, date, and epsilon r value
+        time_date_epsilon_tuple = (current_date, epsilon_r)
+        
+        # Append the tuple to the list
+        time_date_tuples.append(time_date_epsilon_tuple)
+    
+    # Convert the list of tuples to a 2D numpy array
+    time_date_epsilon_array = np.array(time_date_tuples)
+    
+    return time_date_epsilon_array
+
+def plot_epsilon_r_over_time(time_date_epsilon_array: np.ndarray):
+    # Extract the time and epsilon r values from the array
+    time = time_date_epsilon_array[:, 0]
+    epsilon_r = time_date_epsilon_array[:, 1]
+    
+    # Plot the epsilon r values over time with markers
+    plt.plot(range(len(time)), epsilon_r, marker='o')
+    plt.xticks(range(len(time)), time, rotation=45)
+    plt.xlabel('Time')
+    plt.ylabel('Epsilon r')
+    plt.title('Epsilon r Over Time')
+    
+    # Display epsilon r values beside the data points
+    for i in range(len(time)):
+        plt.text(i, epsilon_r[i], f'{epsilon_r[i]}', ha='center', va='bottom')
+    
+    plt.show()
 
 def load_data(filename: str) -> tuple:
     # Check if the file exists
@@ -60,24 +149,6 @@ def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imag
     time, time_domain_signal = czt.freq2time(frequencies, freq_resp, np.linspace(0, 0.4e-8, 1001))
     return time, time_domain_signal
 
-# def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imaginary_parts: np.ndarray) -> np.ndarray:
-#     # Calculate the number of samples
-#     num_samples = len(frequencies)
-#     fs = (frequencies[1] - frequencies[0]) * num_samples
-#     T = 1/fs
-#     # Initialize an empty array for the time domain signal
-#     time_domain_signal = np.zeros(num_samples, dtype=complex)
-    
-#     # Iterate over each frequency and corresponding real and imaginary parts
-#     for n in range(num_samples):
-#         # Calculate the time domain value using inverse Fourier transform
-#         for k in range(num_samples):
-#             mag = math.sqrt(real_parts[k]**2 + imaginary_parts[k]**2)
-#             phase = math.atan2(imaginary_parts[k], real_parts[k])
-#             time_domain_signal[n] += mag * math.exp(T * 1j * phase * k)
-    
-#     return time_domain_signal
-   
 
 def plot_time_domain(time, time_domain_signal: np.ndarray):
     # Generate the time axis
@@ -100,4 +171,17 @@ def plot_time_domain_from_file(filename: str):
     
     # Plot the time domain signal
     plot_time_domain(time, time_domain_signal)
+
+
+def main():
+    # Prompt the user for data input
+    reference_file, files, distance = data_input()
     
+    # Calculate the epsilon r values from the files
+    time_date_epsilon_array = calculate_epsilon_r_from_files(reference_file, files, distance)
+    
+    # Plot the epsilon r values over time
+    plot_epsilon_r_over_time(time_date_epsilon_array)
+
+if __name__ == "__main__":
+    main()
