@@ -19,9 +19,12 @@
 import logging
 
 from PyQt6 import QtWidgets, QtCore, QtGui
-from NanoVNASaver.Touchstone import Touchstone
-from NanoVNASaver.RFTools import Datapoint
+# from NanoVNASaver.Touchstone import Touchstone
+# from NanoVNASaver.RFTools import Datapoint
 from NanoVNASaver.Windows.Defaults import make_scrollable
+from NanoVNASaver.RFTools import Datapoint
+from NanoVNASaver import Calculations
+from NanoVNASaver.Touchstone import Touchstone
 
 class TDWindow(QtWidgets.QWidget):
     def __init__(self, app: QtWidgets.QWidget):
@@ -36,39 +39,27 @@ class TDWindow(QtWidgets.QWidget):
         file_window_layout = QtWidgets.QVBoxLayout()
         make_scrollable(self, file_window_layout)
 
-        # load_file_control_box = QtWidgets.QGroupBox("Import file")
-        # load_file_control_box.setMaximumWidth(300)
-        # load_file_control_layout = QtWidgets.QFormLayout(load_file_control_box)
+        TD_control_box = QtWidgets.QGroupBox("Plotting Time Domain")
+        TD_control_box.setMaximumWidth(300)
+        TD_control_box_layout = QtWidgets.QFormLayout(TD_control_box)
 
-        # btn_load_sweep = QtWidgets.QPushButton("Load as sweep")
-        # btn_load_sweep.clicked.connect(self.loadSweepFile)
-        # btn_load_reference = QtWidgets.QPushButton("Load reference")
-        # btn_load_reference.clicked.connect(self.loadReferenceFile)
-        # load_file_control_layout.addRow(btn_load_sweep)
-        # load_file_control_layout.addRow(btn_load_reference)
+        time_range_label = QtWidgets.QLabel("Time Range:")
+        time_range_textfield = QtWidgets.QLineEdit()
+        TD_control_box_layout.addRow(time_range_label, time_range_textfield)
 
-        # file_window_layout.addWidget(load_file_control_box)
+        #in future add for s21
+        btn_TD_plot = QtWidgets.QPushButton("Plot Time Domain")
+        btn_TD_plot.clicked.connect(lambda: self.plotTD(4, time_range_textfield.text()))
+        TD_control_box_layout.addRow(btn_TD_plot)
 
-        save_file_control_box = QtWidgets.QGroupBox("Export file")
-        save_file_control_box.setMaximumWidth(300)
-        save_file_control_layout = QtWidgets.QFormLayout(save_file_control_box)
 
-        btn_export_file = QtWidgets.QPushButton("Save 1-Port file (S1P)")
-        btn_export_file.clicked.connect(lambda: self.exportFile(1))
-        save_file_control_layout.addRow(btn_export_file)
-
-        btn_TD_plot = QtWidgets.QPushButton("Time Domain Plot")
-        btn_TD_plot.clicked.connect(lambda: self.exportFile(4))
-        save_file_control_layout.addRow(btn_export_file)
-
-        file_window_layout.addWidget(save_file_control_box)
+        file_window_layout.addWidget(TD_control_box)
 
         btn_time = QtWidgets.QPushButton("Time Domain")
         btn_time.setMinimumHeight(20)
         btn_time.clicked.connect(lambda: self.display_window("time"))
-        
 
-    def exportFile(self, nr_params: int = 1):
+    def plotTD(self, nr_params: int = 0, time_range: float = 0):
         if len(self.app.data.s11) == 0:
             QtWidgets.QMessageBox.warning(
                 self, "No data to save", "There is no data to save."
@@ -79,31 +70,18 @@ class TDWindow(QtWidgets.QWidget):
                 self, "No S21 data to save", "There is no S21 data to save."
             )
             return
-
-        filedialog = QtWidgets.QFileDialog(self)
-        if nr_params == 1:
-            filedialog.setDefaultSuffix("s1p")
-            filedialog.setNameFilter(
-                "Touchstone 1-Port Files (*.s1p);;All files (*.*)"
+        if time_range == 0:         
+            QtWidgets.QMessageBox.warning(
+                self, "Time Range Error", "Please enter a time range to plot the time domain."
             )
-        else:
-            filedialog.setDefaultSuffix("s2p")
-            filedialog.setNameFilter(
-                "Touchstone 2-Port Files (*.s2p);;All files (*.*)"
-            )
-        filedialog.setAcceptMode(QtWidgets.QFileDialog.AcceptMode.AcceptSave)
-        selected = filedialog.exec()
-        if not selected:
-            return
-        filename = filedialog.selectedFiles()[0]
-        if filename == "":
-            logger.debug("No file name selected.")
             return
 
-        ts = Touchstone(filename)
+        ts = Touchstone()
         ts.sdata[0] = self.app.data.s11
         if nr_params > 1:
             ts.sdata[1] = self.app.data.s21
             for dp in self.app.data.s11:
                 ts.sdata[2].append(Datapoint(dp.freq, 0, 0))
                 ts.sdata[3].append(Datapoint(dp.freq, 0, 0))
+
+        Calculations.plot_time_domain_from_text(Touchstone.saves(ts, nr_params), nr_params, time_range)

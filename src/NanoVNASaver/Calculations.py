@@ -135,18 +135,19 @@ def load_data(filename: str) -> tuple:
     
     return freq, re, im
 
-def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imaginary_parts: np.ndarray) -> np.ndarray:
+def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imaginary_parts: np.ndarray, time_range: float) -> np.ndarray:
     # Calculate the number of samples
     num_samples = len(frequencies)
     
     # Initialize an empty array for the time domain signal
     freq_resp = np.zeros(num_samples, dtype=complex)
     
+    time_range = float(time_range) * 10 ** -8
     # Iterate over each frequency and corresponding real and imaginary parts
     for i in range(num_samples):
         # Calculate the time domain value using inverse Fourier transform
         freq_resp[i] = real_parts[i] + 1j * imaginary_parts[i]
-    time, time_domain_signal = czt.freq2time(frequencies, freq_resp, np.linspace(0, 0.4e-8, 1001))
+    time, time_domain_signal = czt.freq2time(frequencies, freq_resp, np.linspace(0, time_range, 1001))
     return time, time_domain_signal
 
 
@@ -171,6 +172,58 @@ def plot_time_domain_from_file(filename: str):
     
     # Plot the time domain signal
     plot_time_domain(time, time_domain_signal)
+
+
+def plot_time_domain_from_text(text: str, nr_params: int = 1, time: float = 0):
+    # Split the text into lines
+    lines = text.strip().split('\n')
+    
+    # Initialize empty arrays
+    freq = []
+    re_s11 = []
+    im_s11 = []
+    re_s21 = []
+    im_s21 = []
+    
+    # Read each line and extract the values
+    for line in lines:
+        if line.startswith('#'):
+            continue
+
+        # Split the line into columns
+        columns = line.strip().split()
+        
+        # Convert the columns to float values
+        frequency = float(columns[0])
+        real_s11 = float(columns[1])
+        imaginary_s11 = float(columns[2])
+        freq.append(frequency)
+        re_s11.append(real_s11)
+        im_s11.append(imaginary_s11)
+        
+
+        if nr_params > 1:
+            real_s21 = float(columns[3])
+            imaginary_s21 = float(columns[4])
+            re_s21.append(real_s21)
+            im_s21.append(imaginary_s21)
+             
+    # Convert the arrays to numpy arrays
+    freq = np.array(freq)
+ 
+    #plot for S11
+    if nr_params == 1:
+        re_s11 = np.array(re_s11)
+        im_s11 = np.array(im_s11)
+        time_s11, time_domain_signal_s11 = convert_to_time_domain(freq, re_s11, im_s11, time)
+        plot_time_domain(time_s11, time_domain_signal_s11)
+
+    #plot for S21
+    if nr_params > 1:
+        re_s21 = np.array(re_s21)
+        im_s21 = np.array(im_s21)
+        time_s21, time_domain_signal_s21 = convert_to_time_domain(freq, re_s21, im_s21, time)
+        plot_time_domain(time_s21, time_domain_signal_s21)
 
 
 def main():

@@ -9,6 +9,7 @@ from .MarkerSettings import MarkerSettingsWindow
 from .Screenshot import ScreenshotWindow
 from .SweepSettings import SweepSettingsWindow
 from .TDR import TDRWindow
+from .TimeDomain import TDWindow
 
 __all__ = [
     "AboutWindow",
@@ -22,4 +23,5 @@ __all__ = [
     "ScreenshotWindow",
     "SweepSettingsWindow",
     "TDRWindow",
+    "TDWindow",
 ]

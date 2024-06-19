@@ -27,7 +27,7 @@ from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import QWidget
 
 from NanoVNASaver import Defaults
-from .Windows import (
+from NanoVNASaver.Windows import (
     AboutWindow,
     AnalysisWindow,
     CalibrationWindow,
@@ -36,7 +36,9 @@ from .Windows import (
     SweepSettingsWindow,
     TDRWindow,
     FilesWindow,
+    TDWindow,
 )
+
 from .Controls.MarkerControl import MarkerControl
 from .Controls.SweepControl import SweepControl
 from .Controls.SerialControl import SerialControl
@@ -279,6 +281,7 @@ class NanoVNASaver(QWidget):
             "sweep_settings": SweepSettingsWindow(self),
             "setup": DisplaySettingsWindow(self),
             "tdr": TDRWindow(self),
+            "time": TDWindow(self),
         }
 
         ###############################################################
@@ -458,11 +461,16 @@ class NanoVNASaver(QWidget):
             lambda: self.display_window("file")
         )
 
+        btn_time = QtWidgets.QPushButton("Time Domain")
+        btn_time.setMinimumHeight(20)
+        btn_time.clicked.connect(lambda: self.display_window("time"))
+
         button_grid = QtWidgets.QGridLayout()
         button_grid.addWidget(btn_open_file_window, 0, 0)
         button_grid.addWidget(btnOpenCalibrationWindow, 0, 1)
         button_grid.addWidget(btn_display_setup, 1, 0)
         button_grid.addWidget(btn_about, 1, 1)
+        button_grid.addWidget(btn_time, 2, 0)
         left_column.addLayout(button_grid)
 
         logger.debug("Finished building interface")

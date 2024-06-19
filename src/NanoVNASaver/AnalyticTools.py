@@ -28,29 +28,7 @@ from scipy.signal import find_peaks
 from NanoVNASaver.RFTools import Datapoint
 from NanoVNASaver.SweepWorker import SweepWorker
 
-def print_data(data: list[float]):
-    """Prints the data to the terminal.
 
-    Args:
-        data (list[float]): The data to be printed.
-    """
-    # Assuming you have a class or method that initializes a SweepWorker instance
-    # and 'app' is an instance of your application with necessary methods and attributes
-
-    # Initialize the SweepWorker
-    sweep_worker = SweepWorker(app)
-
-    # Define start and stop indices for the segment you want to read
-    start_index = 0
-    stop_index = 100
-
-    # Call the readSegment function
-    frequencies, values11, values21 = sweep_worker.readSegment(start_index, stop_index)
-
-    # Process the returned data as needed  
-
-    for value in data:
-        print(value)
 
 def zero_crossings(data: list[float]) -> list[int]:
     """find zero crossings
