@@ -31,7 +31,7 @@ class TDWindow(QtWidgets.QWidget):
         super().__init__()
         self.app = app
 
-        self.setWindowTitle("Time Domain Analusis")
+        self.setWindowTitle("Time Domain Analysis")
         self.setWindowIcon(self.app.icon)
         self.setMinimumWidth(200)
         QtGui.QShortcut(QtCore.Qt.Key.Key_Escape, self, self.hide)
@@ -45,6 +45,7 @@ class TDWindow(QtWidgets.QWidget):
 
         time_range_label = QtWidgets.QLabel("Time Range:")
         time_range_textfield = QtWidgets.QLineEdit()
+        time_range_textfield.textChanged.connect(lambda: time_range_textfield.setText(time_range_textfield.text()))
         TD_control_box_layout.addRow(time_range_label, time_range_textfield)
 
         #in future add for s21
@@ -52,12 +53,26 @@ class TDWindow(QtWidgets.QWidget):
         btn_TD_plot.clicked.connect(lambda: self.plotTD(4, time_range_textfield.text()))
         TD_control_box_layout.addRow(btn_TD_plot)
 
-
         file_window_layout.addWidget(TD_control_box)
+
+        # load_file_control_box = QtWidgets.QGroupBox("Calculate Permittivity")
+        # load_file_control_box.setMaximumWidth(300)
+        # load_file_control_layout = QtWidgets.QFormLayout(load_file_control_box)
+
+        # # btn_load_sweep = QtWidgets.QPushButton("Load Reference")
+        # # btn_load_sweep.clicked.connect(self.loadSweepFile)
+        # btn_load_reference = QtWidgets.QPushButton("Load Reference File")
+        # btn_load_reference.clicked.connect(self.loadReferenceFile)
+        # #load_file_control_layout.addRow(btn_load_sweep)
+        # load_file_control_layout.addRow(btn_load_reference)
+
+        # file_window_layout.addWidget(load_file_control_box)
 
         btn_time = QtWidgets.QPushButton("Time Domain")
         btn_time.setMinimumHeight(20)
         btn_time.clicked.connect(lambda: self.display_window("time"))
+
+        
 
     def plotTD(self, nr_params: int = 0, time_range: float = 0):
         if len(self.app.data.s11) == 0:
@@ -85,3 +100,13 @@ class TDWindow(QtWidgets.QWidget):
                 ts.sdata[3].append(Datapoint(dp.freq, 0, 0))
 
         Calculations.plot_time_domain_from_text(Touchstone.saves(ts, nr_params), nr_params, time_range)
+
+    # def loadReferenceFile(self):
+    #     filename, _ = QtWidgets.QFileDialog.getOpenFileName(
+    #         filter="Touchstone Files (*.s1p *.s2p);;All files (*.*)"
+    #     )
+    #     if filename != "":
+    #         self.app.resetReference()
+    #         t = Touchstone(filename)
+    #         t.load()
+    #         self.app.setReference(t.s11, t.s21, filename)

@@ -35,34 +35,34 @@ def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distan
     freq_ref, re_ref, im_ref = load_data(reference_file)
     
     # Convert the reference data to time domain
-    time_ref, time_domain_signal_ref = convert_to_time_domain(freq_ref, re_ref, im_ref)
+    time_ref, time_domain_signal_ref = convert_to_time_domain(freq_ref, re_ref, im_ref, 10)
     
     # Initialize an empty list to store the epsilon r values and time/date tuples
     time_date_tuples = []
-    peak_ref = np.max(time_domain_signal_ref)
-    index_ref = np.argmax(time_domain_signal_ref)
-
+    peak_ref = np.max(abs(time_domain_signal_ref))
+    index_ref = np.argmax(abs(time_domain_signal_ref))
+    print(index_ref)
     # Iterate over each file
     for file in files:
         # Load the data from the file
         freq, re, im = load_data(file)
         
         # Convert the data to time domain
-        time, time_domain_signal = convert_to_time_domain(freq, re, im)
+        time, time_domain_signal = convert_to_time_domain(freq, re, im, 10)
         
         # Find the time difference between the reference signal and the current signal
         # Find the peak value of each signal
-        peak = np.max(time_domain_signal)
+        peak = np.max(abs(time_domain_signal))
     
         # Find the indices of the peak values
-        index = np.argmax(time_domain_signal)
+        index = np.argmax(abs(time_domain_signal))
     
         # Find the time difference between the peaks
-        time_difference = index - index_ref
-        
+        time_difference = time[index] - time_ref[index_ref]
+        print(time_difference)
         # Calculate the epsilon r value
         c=3e8
-        epsilon_r = (1 + (time_difference * c) / (distance)) ** 2
+        epsilon_r = (1 + (time_difference * c) / (distance * 10 ** -3)) ** 2
         
         # Extract the creation or last modified date of the file
         file_stats = os.stat(file)
@@ -120,8 +120,8 @@ def load_data(filename: str) -> tuple:
             
             # Convert the columns to float values
             frequency = float(columns[0])
-            real = float(columns[2])
-            imaginary = float(columns[3])
+            real = float(columns[3])
+            imaginary = float(columns[4])
             
             # Append the values to the arrays
             freq.append(frequency)
@@ -142,7 +142,7 @@ def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imag
     # Initialize an empty array for the time domain signal
     freq_resp = np.zeros(num_samples, dtype=complex)
     
-    time_range = float(time_range) * 10 ** -8
+    time_range = float(time_range) * 10 ** -9
     # Iterate over each frequency and corresponding real and imaginary parts
     for i in range(num_samples):
         # Calculate the time domain value using inverse Fourier transform
@@ -156,8 +156,8 @@ def plot_time_domain(time, time_domain_signal: np.ndarray):
     #time = np.arange(len(time_domain_signal))
     
     # Plot the time domain signal
-    plt.plot(time, np.abs(time_domain_signal))
-    plt.xlabel('Time')
+    plt.plot(time * 10 ** 9, np.abs(time_domain_signal))
+    plt.xlabel('Time (ns)')
     plt.ylabel('Amplitude')
     plt.title('Time Domain Wave')
     plt.show()
