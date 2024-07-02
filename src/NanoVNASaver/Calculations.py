@@ -30,12 +30,47 @@ def data_input() -> tuple:
     
     return reference, file_list, distance
 
-def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distance: float) -> np.ndarray:
+def calculate_epsilon_r(data1: tuple, data2: tuple, distance: float = 0, time_range: float = 0) -> float:
+    # Convert the data to time domain for the first set
+    time1, time_domain_signal1 = convert_to_time_domain(data1[0], data1[1], data1[2], float(time_range))
+    
+    # Convert the data to time domain for the second set
+    time2, time_domain_signal2 = convert_to_time_domain(data2[0], data2[1], data2[2], float(time_range))
+    
+    # Find the peak value of each signal
+    peak1 = np.max(abs(time_domain_signal1))
+    peak2 = np.max(abs(time_domain_signal2))
+    
+    # Find the indices of the peak values
+    index1 = np.argmax(abs(time_domain_signal1))
+    index2 = np.argmax(abs(time_domain_signal2))
+    
+    # Find the time difference between the peaks
+    time_difference = time1[index1] - time2[index2]
+    print(time_difference, distance,time_range)
+    # Calculate the epsilon r value
+    c = 3e8
+
+    epsilon_r = (1 + (time_difference * c) / (distance * 10 ** -3)) ** 2
+    # Create a Tkinter window to display the epsilon r value
+    window = tk.Tk()
+    window.title("Permittivity (εᵣ):")
+    window.geometry("200x100")
+
+    # Create a label to display the epsilon r value
+    epsilon_r_label = tk.Label(window, text=f"Permittivity (εᵣ): {epsilon_r}")
+    epsilon_r_label.pack()
+
+    # Run the Tkinter event loop
+    window.mainloop()
+
+
+def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distance: float, time_range: float) -> np.ndarray:
     # Load the data from the reference file
     freq_ref, re_ref, im_ref = load_data(reference_file)
     
     # Convert the reference data to time domain
-    time_ref, time_domain_signal_ref = convert_to_time_domain(freq_ref, re_ref, im_ref, 10)
+    time_ref, time_domain_signal_ref = convert_to_time_domain(freq_ref, re_ref, im_ref, time_range)
     
     # Initialize an empty list to store the epsilon r values and time/date tuples
     time_date_tuples = []
@@ -48,7 +83,7 @@ def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distan
         freq, re, im = load_data(file)
         
         # Convert the data to time domain
-        time, time_domain_signal = convert_to_time_domain(freq, re, im, 10)
+        time, time_domain_signal = convert_to_time_domain(freq, re, im, time_range)
         
         # Find the time difference between the reference signal and the current signal
         # Find the peak value of each signal
@@ -59,7 +94,7 @@ def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distan
     
         # Find the time difference between the peaks
         time_difference = time[index] - time_ref[index_ref]
-        print(time_difference)
+        print(time_difference, distance)
         # Calculate the epsilon r value
         c=3e8
         epsilon_r = (1 + (time_difference * c) / (distance * 10 ** -3)) ** 2
@@ -151,10 +186,10 @@ def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imag
     return time, time_domain_signal
 
 
-def plot_time_domain(time, time_domain_signal: np.ndarray):
+def plot_time_domain(data, time_range: float = 0):
     # Generate the time axis
     #time = np.arange(len(time_domain_signal))
-    
+    time, time_domain_signal = convert_to_time_domain(data[0], data[1], data[2], time_range)
     # Plot the time domain signal
     plt.plot(time * 10 ** 9, np.abs(time_domain_signal))
     plt.xlabel('Time (ns)')
@@ -162,69 +197,21 @@ def plot_time_domain(time, time_domain_signal: np.ndarray):
     plt.title('Time Domain Wave')
     plt.show()
 
-
-def plot_time_domain_from_file(filename: str):
-    # Load the data from the file
-    freq, re, im = load_data(filename)
+def plot_time_domain_compare(data1, data2, time_range: float = 0):
+    # Convert the data to time domain for the first set
+    time1, time_domain_signal1 = convert_to_time_domain(data1[0], data1[1], data1[2], time_range)
     
-    # Convert the data to time domain
-    time, time_domain_signal = convert_to_time_domain(freq, re, im)
+    # Convert the data to time domain for the second set
+    time2, time_domain_signal2 = convert_to_time_domain(data2[0], data2[1], data2[2], time_range)
     
-    # Plot the time domain signal
-    plot_time_domain(time, time_domain_signal)
-
-
-def plot_time_domain_from_text(text: str, nr_params: int = 1, time: float = 0):
-    # Split the text into lines
-    lines = text.strip().split('\n')
-    
-    # Initialize empty arrays
-    freq = []
-    re_s11 = []
-    im_s11 = []
-    re_s21 = []
-    im_s21 = []
-    
-    # Read each line and extract the values
-    for line in lines:
-        if line.startswith('#'):
-            continue
-
-        # Split the line into columns
-        columns = line.strip().split()
-        
-        # Convert the columns to float values
-        frequency = float(columns[0])
-        real_s11 = float(columns[1])
-        imaginary_s11 = float(columns[2])
-        freq.append(frequency)
-        re_s11.append(real_s11)
-        im_s11.append(imaginary_s11)
-        
-
-        if nr_params > 1:
-            real_s21 = float(columns[3])
-            imaginary_s21 = float(columns[4])
-            re_s21.append(real_s21)
-            im_s21.append(imaginary_s21)
-             
-    # Convert the arrays to numpy arrays
-    freq = np.array(freq)
- 
-    #plot for S11
-    if nr_params == 1:
-        re_s11 = np.array(re_s11)
-        im_s11 = np.array(im_s11)
-        time_s11, time_domain_signal_s11 = convert_to_time_domain(freq, re_s11, im_s11, time)
-        plot_time_domain(time_s11, time_domain_signal_s11)
-
-    #plot for S21
-    if nr_params > 1:
-        re_s21 = np.array(re_s21)
-        im_s21 = np.array(im_s21)
-        time_s21, time_domain_signal_s21 = convert_to_time_domain(freq, re_s21, im_s21, time)
-        plot_time_domain(time_s21, time_domain_signal_s21)
-
+    # Plot the time domain signals
+    plt.plot(time1 * 10 ** 9, np.abs(time_domain_signal1), label='Set 1')
+    plt.plot(time2 * 10 ** 9, np.abs(time_domain_signal2), label='Set 2')
+    plt.xlabel('Time (ns)')
+    plt.ylabel('Amplitude')
+    plt.title('Time Domain Wave')
+    plt.legend()
+    plt.show()
 
 def main():
     # Prompt the user for data input

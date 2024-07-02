@@ -22,7 +22,7 @@ from PyQt6 import QtWidgets, QtCore, QtGui
 from NanoVNASaver.Touchstone import Touchstone
 from NanoVNASaver.RFTools import Datapoint
 from NanoVNASaver.Windows.Defaults import make_scrollable
-from NanoVNASaver.Calculations import plot_time_domain_from_file as p
+
 
 
 
