@@ -65,7 +65,7 @@ class TDWindow(QtWidgets.QWidget):
         TD_control_box_layout.addRow(btn_TD_plot)
 
         #compares plots for set reference and sweep data
-        btn_TD_plot_compare = QtWidgets.QPushButton("Compare Ref and DUT Plots") 
+        btn_TD_plot_compare = QtWidgets.QPushButton("Compare Ref and DUT Plot") 
         btn_TD_plot_compare.clicked.connect(lambda: self.plotTDCompare(4))
         TD_control_box_layout.addRow(btn_TD_plot_compare)
 
