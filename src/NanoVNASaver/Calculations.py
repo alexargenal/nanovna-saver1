@@ -1,7 +1,8 @@
-import itertools as it
-import math
+#This module is used to compute the time domain of sweep data, calculate the relative permittivity of a material,
+#and use matplotlib plots to visualize the time domain as well as permittivity calcs over time.
+
 import matplotlib.pyplot as plt
-from typing import Callable
+
 
 import numpy as np
 #need to load filename 
@@ -11,35 +12,14 @@ import tkinter as tk
 import datetime
 from tkinter import filedialog
 
-def data_input() -> tuple:
-    # Create a Tkinter root window
-    root = tk.Tk()
-    root.withdraw()
-    
-    # Open file dialog for the first file
-    reference = filedialog.askopenfilename(title="Select the reference file")
-    
-    # Open file dialog for the second file
-      # Open file dialog for multiple files
-    files = filedialog.askopenfilenames(title="Select files")
-    
-    # Convert the files to a list
-    file_list = list(files)
-    # Prompt the user to enter a distance value
-    distance = float(tk.simpledialog.askstring("Enter Distance", "Enter the distance value in cm:"))
-    
-    return reference, file_list, distance
-
 def calculate_epsilon_r(data1: tuple, data2: tuple, distance: float = 0, time_range: float = 0) -> float:
+    #this function finds permittivity from the current sweep and set reference through the software
+
     # Convert the data to time domain for the first set
     time1, time_domain_signal1 = convert_to_time_domain(data1[0], data1[1], data1[2], float(time_range))
     
     # Convert the data to time domain for the second set
     time2, time_domain_signal2 = convert_to_time_domain(data2[0], data2[1], data2[2], float(time_range))
-    
-    # Find the peak value of each signal
-    peak1 = np.max(abs(time_domain_signal1))
-    peak2 = np.max(abs(time_domain_signal2))
     
     # Find the indices of the peak values
     index1 = np.argmax(abs(time_domain_signal1))
@@ -47,25 +27,17 @@ def calculate_epsilon_r(data1: tuple, data2: tuple, distance: float = 0, time_ra
     
     # Find the time difference between the peaks
     time_difference = time1[index1] - time2[index2]
-    print(time_difference, distance,time_range)
     # Calculate the epsilon r value
     c = 3e8
-
+    
     epsilon_r = (1 + (time_difference * c) / (distance * 10 ** -3)) ** 2
-    # Create a Tkinter window to display the epsilon r value
-    window = tk.Tk()
-    window.title("Permittivity (εᵣ):")
-    window.geometry("200x100")
-
-    # Create a label to display the epsilon r value
-    epsilon_r_label = tk.Label(window, text=f"Permittivity (εᵣ): {epsilon_r}")
-    epsilon_r_label.pack()
-
-    # Run the Tkinter event loop
-    window.mainloop()
+    
+    return epsilon_r
 
 
 def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distance: float, time_range: float) -> np.ndarray:
+    #this function finds epsilon r from the user selected reference file and multiple DUT files
+
     # Load the data from the reference file
     freq_ref, re_ref, im_ref = load_data(reference_file)
     
@@ -73,10 +45,11 @@ def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distan
     time_ref, time_domain_signal_ref = convert_to_time_domain(freq_ref, re_ref, im_ref, time_range)
     
     # Initialize an empty list to store the epsilon r values and time/date tuples
-    time_date_tuples = []
-    peak_ref = np.max(abs(time_domain_signal_ref))
+    time_date = []
+    epsilon_r_values = []
+
     index_ref = np.argmax(abs(time_domain_signal_ref))
-    print(index_ref)
+
     # Iterate over each file
     for file in files:
         # Load the data from the file
@@ -87,14 +60,13 @@ def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distan
         
         # Find the time difference between the reference signal and the current signal
         # Find the peak value of each signal
-        peak = np.max(abs(time_domain_signal))
     
         # Find the indices of the peak values
         index = np.argmax(abs(time_domain_signal))
     
         # Find the time difference between the peaks
         time_difference = time[index] - time_ref[index_ref]
-        print(time_difference, distance)
+    
         # Calculate the epsilon r value
         c=3e8
         epsilon_r = (1 + (time_difference * c) / (distance * 10 ** -3)) ** 2
@@ -103,74 +75,37 @@ def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distan
         file_stats = os.stat(file)
         timestamp = max(file_stats.st_ctime, file_stats.st_mtime)
         current_date = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M')
-        
-        # Create a tuple with the time, date, and epsilon r value
-        time_date_epsilon_tuple = (current_date, epsilon_r)
-        
-        # Append the tuple to the list
-        time_date_tuples.append(time_date_epsilon_tuple)
-    
-    # Convert the list of tuples to a 2D numpy array
-    time_date_epsilon_array = np.array(time_date_tuples)
-    
-    return time_date_epsilon_array
 
-def plot_epsilon_r_over_time(time_date_epsilon_array: np.ndarray):
-    # Extract the time and epsilon r values from the array
-    time = time_date_epsilon_array[:, 0]
-    epsilon_r = time_date_epsilon_array[:, 1]
+        
+        # Append the data to the arrays
+        time_date.append(current_date)
+        epsilon_r_values.append(epsilon_r)
+
+    return time_date, epsilon_r_values
+
+def plot_epsilon_r_over_time(time_date, epsilon_r_values):
+    #this function plots epsilon r over time or measurements taken based on the date stamp of the saved touchstone files
+
+    time, epsilon_r = np.array(time_date), np.array(epsilon_r_values)
     
     # Plot the epsilon r values over time with markers
-    plt.plot(range(len(time)), epsilon_r, marker='o')
+    plt.plot(range(len(time)), np.round(epsilon_r, 3), marker='o', linestyle='-')
     plt.xticks(range(len(time)), time, rotation=45)
     plt.xlabel('Time')
-    plt.ylabel('Epsilon r')
-    plt.title('Epsilon r Over Time')
+    plt.ylabel('εᵣ')
+    plt.title('Relative Permittivity Over Time')
     
     # Display epsilon r values beside the data points
     for i in range(len(time)):
-        plt.text(i, epsilon_r[i], f'{epsilon_r[i]}', ha='center', va='bottom')
+        plt.text(i, epsilon_r[i], f'{epsilon_r[i]:.3f}', ha='center', va='bottom')
     
     plt.show()
 
-def load_data(filename: str) -> tuple:
-    # Check if the file exists
-    if not os.path.isfile(filename):
-        raise FileNotFoundError(f"File '{filename}' not found.")
-    
-    # Initialize empty arrays
-    freq = []
-    re = []
-    im = []
-    
-    # Read the file line by line
-    with open(filename, 'r') as file:
-        for line in file:
-            if line.startswith('#'):
-                continue
-            
-
-            # Split the line into columns
-            columns = line.strip().split()
-            
-            # Convert the columns to float values
-            frequency = float(columns[0])
-            real = float(columns[3])
-            imaginary = float(columns[4])
-            
-            # Append the values to the arrays
-            freq.append(frequency)
-            re.append(real)
-            im.append(imaginary)
-    
-    # Convert the arrays to numpy arrays
-    freq = np.array(freq)
-    re = np.array(re)
-    im = np.array(im)
-    
-    return freq, re, im
 
 def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imaginary_parts: np.ndarray, time_range: float) -> np.ndarray:
+    #this function converts the frequency domain data to time domain data using the chirp z transform using 
+    #a time winow specified by the user through the software GUI
+
     # Calculate the number of samples
     num_samples = len(frequencies)
     
@@ -187,6 +122,8 @@ def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imag
 
 
 def plot_time_domain(data, time_range: float = 0):
+    #this function plots the time domain data
+
     # Generate the time axis
     #time = np.arange(len(time_domain_signal))
     time, time_domain_signal = convert_to_time_domain(data[0], data[1], data[2], time_range)
@@ -198,6 +135,9 @@ def plot_time_domain(data, time_range: float = 0):
     plt.show()
 
 def plot_time_domain_compare(data1, data2, time_range: float = 0):
+    #this function is used to plot the reference data against the DUT data in the time domain.
+    #data1 is the DUT and data2 is the reference data
+
     # Convert the data to time domain for the first set
     time1, time_domain_signal1 = convert_to_time_domain(data1[0], data1[1], data1[2], time_range)
     
@@ -205,23 +145,50 @@ def plot_time_domain_compare(data1, data2, time_range: float = 0):
     time2, time_domain_signal2 = convert_to_time_domain(data2[0], data2[1], data2[2], time_range)
     
     # Plot the time domain signals
-    plt.plot(time1 * 10 ** 9, np.abs(time_domain_signal1), label='Set 1')
-    plt.plot(time2 * 10 ** 9, np.abs(time_domain_signal2), label='Set 2')
+    plt.plot(time1 * 10 ** 9, np.abs(time_domain_signal1), label='DUT')
+    plt.plot(time2 * 10 ** 9, np.abs(time_domain_signal2), label='Reference')
     plt.xlabel('Time (ns)')
     plt.ylabel('Amplitude')
-    plt.title('Time Domain Wave')
+    plt.title('Time Domain Reference vs DUT')
     plt.legend()
     plt.show()
 
-def main():
-    # Prompt the user for data input
-    reference_file, files, distance = data_input()
+def load_data(file: str) -> tuple:
+    #this function loads the data from a touchstone file and returns the frequency, real, and imaginary parts
+    freq = []
+    re = []
+    im = []
     
-    # Calculate the epsilon r values from the files
-    time_date_epsilon_array = calculate_epsilon_r_from_files(reference_file, files, distance)
+    with open(file, 'r') as f:
+        for line in f:
+            if line.startswith('!') or line.startswith('#'):
+                continue
+            parts = line.split()
+            freq.append(float(parts[0]))
+            re.append(float(parts[3]))
+            im.append(float(parts[4]))
+    
+    return np.array(freq), np.array(re), np.array(im)
+
+def main():
+    #this is the main function that executes the program for testing
+    # Ask the user to select the reference file
+    root = tk.Tk()
+    root.withdraw()
+    reference_file = filedialog.askopenfilename(title='Select Reference File')
+    
+    # Ask the user to select the DUT files
+    files = filedialog.askopenfilenames(title='Select DUT Files')
+    
+    # Ask the user for the distance and time range
+    distance = float(input('Enter the distance between the reference and DUT (in mm): '))
+    time_range = float(input('Enter the time range for the time domain conversion (in ns): '))
+    
+    # Calculate the epsilon r values
+    time_date_epsilon_array = calculate_epsilon_r_from_files(reference_file, files, distance, time_range)
     
     # Plot the epsilon r values over time
     plot_epsilon_r_over_time(time_date_epsilon_array)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
