@@ -118,7 +118,7 @@ class FilesWindow(QtWidgets.QWidget):
         except IOError as e:
             logger.exception("Error during file export: %s", e)
             return
-        p(filename)
+        
         
     def loadReferenceFile(self):
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(

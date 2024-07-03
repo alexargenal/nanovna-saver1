@@ -42,16 +42,9 @@ class TDWindow(QtWidgets.QWidget):
         file_window_layout = QtWidgets.QVBoxLayout()
         make_scrollable(self, file_window_layout)
 
-        User_in_control_box = QtWidgets.QGroupBox("Enter Distance between Antennas and Time Window")
+        User_in_control_box = QtWidgets.QGroupBox("Enter Distance between Antennas")
         User_in_control_box.setMaximumWidth(350)
         User_in_control_box_layout = QtWidgets.QFormLayout(User_in_control_box)
-
-        #enter time range for time domain plot
-        time_range_label = QtWidgets.QLabel("Time Window (ns):")
-        time_range_textfield = QtWidgets.QLineEdit()
-        self.time_range = time_range_textfield.text()
-        time_range_textfield.textChanged.connect(lambda: setattr(self, 'time_range', time_range_textfield.text()))
-        User_in_control_box_layout.addRow(time_range_label, time_range_textfield)
 
         #enter distance between antennas
         distance_label = QtWidgets.QLabel("Distance (mm):")
@@ -177,28 +170,16 @@ class TDWindow(QtWidgets.QWidget):
     def plotTDCurrentSweep(self, nr_params: int = 0):
         #this function plots the time domain data for the current sweep
 
-        time_range = self.time_range
-        
-        if time_range == '':         
-            QtWidgets.QMessageBox.warning(
-                self, "Time Range Error", "Please enter a time range to plot the time domain."
-            )
-            return
         #get data from current sweep
         current_data = self.currentSweepData(nr_params)
-        Calculations.plot_time_domain(current_data, time_range)
+        Calculations.plot_time_domain(current_data)
 
     def plotTDCompare(self, nr_params: int = 0):
         #this function compares the time domain plots of the reference and current sweep data
-        time_range = self.time_range
-        if time_range == '':         
-            QtWidgets.QMessageBox.warning(
-                self, "Time Range Error", "Please enter a time range to plot the time domain."
-            )
-            return
+        
         current_data = self.currentSweepData(nr_params)
         ref_data = self.currentRefData(nr_params)
-        Calculations.plot_time_domain_compare(current_data, ref_data, time_range)
+        Calculations.plot_time_domain_compare(current_data, ref_data)
 
     
     def calculateinstantPermittivity(self, nr_params: int = 0):
@@ -206,21 +187,16 @@ class TDWindow(QtWidgets.QWidget):
 
 
         distance = self.distance
-        time_range = self.time_range
 
         if distance == '':         
             QtWidgets.QMessageBox.warning(
                 self, "Distance Error", "Please enter a distance between the antennas to calculate the permittivity."
             )
             return
-        if time_range == '':         
-            QtWidgets.QMessageBox.warning(
-                self, "Time Range Error", "Please enter a time range to plot the time domain."
-            )
-            return
+        
         current_data = self.currentSweepData(nr_params)
         ref_data = self.currentRefData(nr_params)
-        eps_r = Calculations.calculate_epsilon_r(current_data, ref_data, float(distance), float(time_range))
+        eps_r = Calculations.calculate_epsilon_r(current_data, ref_data, float(distance))
         QtWidgets.QMessageBox.information(
             self, "Permittivity Calculation", f"The estimated relative permittivity (εᵣ) is: {eps_r:.3f}"
         )
@@ -230,13 +206,7 @@ class TDWindow(QtWidgets.QWidget):
         #this function calculates and plots multiple epsilon r values from loaded files over time
 
         distance = self.distance
-        time_range = self.time_range
 
-        if time_range == '':         
-            QtWidgets.QMessageBox.warning(
-                self, "Time Range Error", "Please enter a time range to plot the time domain."
-            )
-            return
         
         if distance == '':         
             QtWidgets.QMessageBox.warning(
@@ -249,7 +219,7 @@ class TDWindow(QtWidgets.QWidget):
 
         # Prompt the user to select multiple device under test files
         files, _ = QtWidgets.QFileDialog.getOpenFileNames(self, "Select Device Under Test Files")
-        time_date, epsilon_r_vals = Calculations.calculate_epsilon_r_from_files(reference_file, files, float(distance), float(time_range))
+        time_date, epsilon_r_vals = Calculations.calculate_epsilon_r_from_files(reference_file, files, float(distance))
         
         # Plot the epsilon r values over time
         Calculations.plot_epsilon_r_over_time(time_date, epsilon_r_vals)

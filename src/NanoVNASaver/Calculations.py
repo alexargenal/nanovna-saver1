@@ -12,14 +12,15 @@ import tkinter as tk
 import datetime
 from tkinter import filedialog
 
-def calculate_epsilon_r(data1: tuple, data2: tuple, distance: float = 0, time_range: float = 0) -> float:
+
+def calculate_epsilon_r(data1: tuple, data2: tuple, distance: float = 0) -> float:
     #this function finds permittivity from the current sweep and set reference through the software
 
     # Convert the data to time domain for the first set
-    time1, time_domain_signal1 = convert_to_time_domain(data1[0], data1[1], data1[2], float(time_range))
+    time1, time_domain_signal1 = convert_to_time_domain(data1[0], data1[1], data1[2])
     
     # Convert the data to time domain for the second set
-    time2, time_domain_signal2 = convert_to_time_domain(data2[0], data2[1], data2[2], float(time_range))
+    time2, time_domain_signal2 = convert_to_time_domain(data2[0], data2[1], data2[2])
     
     # Find the indices of the peak values
     index1 = np.argmax(abs(time_domain_signal1))
@@ -35,14 +36,14 @@ def calculate_epsilon_r(data1: tuple, data2: tuple, distance: float = 0, time_ra
     return epsilon_r
 
 
-def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distance: float, time_range: float) -> np.ndarray:
+def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distance: float) -> np.ndarray:
     #this function finds epsilon r from the user selected reference file and multiple DUT files
 
     # Load the data from the reference file
     freq_ref, re_ref, im_ref = load_data(reference_file)
     
     # Convert the reference data to time domain
-    time_ref, time_domain_signal_ref = convert_to_time_domain(freq_ref, re_ref, im_ref, time_range)
+    time_ref, time_domain_signal_ref = convert_to_time_domain(freq_ref, re_ref, im_ref)
     
     # Initialize an empty list to store the epsilon r values and time/date tuples
     time_date = []
@@ -56,7 +57,7 @@ def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distan
         freq, re, im = load_data(file)
         
         # Convert the data to time domain
-        time, time_domain_signal = convert_to_time_domain(freq, re, im, time_range)
+        time, time_domain_signal = convert_to_time_domain(freq, re, im)
         
         # Find the time difference between the reference signal and the current signal
         # Find the peak value of each signal
@@ -102,7 +103,7 @@ def plot_epsilon_r_over_time(time_date, epsilon_r_values):
     plt.show()
 
 
-def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imaginary_parts: np.ndarray, time_range: float) -> np.ndarray:
+def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imaginary_parts: np.ndarray) -> np.ndarray:
     #this function converts the frequency domain data to time domain data using the chirp z transform using 
     #a time winow specified by the user through the software GUI
 
@@ -111,22 +112,23 @@ def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imag
     
     # Initialize an empty array for the time domain signal
     freq_resp = np.zeros(num_samples, dtype=complex)
-    
+    time_range = 50
+
     time_range = float(time_range) * 10 ** -9
     # Iterate over each frequency and corresponding real and imaginary parts
     for i in range(num_samples):
         # Calculate the time domain value using inverse Fourier transform
         freq_resp[i] = real_parts[i] + 1j * imaginary_parts[i]
-    time, time_domain_signal = czt.freq2time(frequencies, freq_resp, np.linspace(0, time_range, 1001))
+    time, time_domain_signal = czt.freq2time(frequencies, freq_resp, np.linspace(0, time_range, 100001))
     return time, time_domain_signal
 
 
-def plot_time_domain(data, time_range: float = 0):
+def plot_time_domain(data):
     #this function plots the time domain data
 
     # Generate the time axis
     #time = np.arange(len(time_domain_signal))
-    time, time_domain_signal = convert_to_time_domain(data[0], data[1], data[2], time_range)
+    time, time_domain_signal = convert_to_time_domain(data[0], data[1], data[2])
     # Plot the time domain signal
     plt.plot(time * 10 ** 9, np.abs(time_domain_signal))
     plt.xlabel('Time (ns)')
@@ -134,15 +136,15 @@ def plot_time_domain(data, time_range: float = 0):
     plt.title('Time Domain Wave')
     plt.show()
 
-def plot_time_domain_compare(data1, data2, time_range: float = 0):
+def plot_time_domain_compare(data1, data2):
     #this function is used to plot the reference data against the DUT data in the time domain.
     #data1 is the DUT and data2 is the reference data
 
     # Convert the data to time domain for the first set
-    time1, time_domain_signal1 = convert_to_time_domain(data1[0], data1[1], data1[2], time_range)
+    time1, time_domain_signal1 = convert_to_time_domain(data1[0], data1[1], data1[2])
     
     # Convert the data to time domain for the second set
-    time2, time_domain_signal2 = convert_to_time_domain(data2[0], data2[1], data2[2], time_range)
+    time2, time_domain_signal2 = convert_to_time_domain(data2[0], data2[1], data2[2])
     
     # Plot the time domain signals
     plt.plot(time1 * 10 ** 9, np.abs(time_domain_signal1), label='DUT')
@@ -185,7 +187,7 @@ def main():
     time_range = float(input('Enter the time range for the time domain conversion (in ns): '))
     
     # Calculate the epsilon r values
-    time_date_epsilon_array = calculate_epsilon_r_from_files(reference_file, files, distance, time_range)
+    time_date_epsilon_array = calculate_epsilon_r_from_files(reference_file, files, distance)
     
     # Plot the epsilon r values over time
     plot_epsilon_r_over_time(time_date_epsilon_array)
