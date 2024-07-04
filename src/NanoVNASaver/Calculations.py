@@ -72,15 +72,14 @@ def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distan
         c=3e8
         epsilon_r = (1 + (time_difference * c) / (distance * 10 ** -3)) ** 2
         
-        # Extract the creation or last modified date of the file
-        file_stats = os.stat(file)
-        timestamp = max(file_stats.st_ctime, file_stats.st_mtime)
-        current_date = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M')
-        epsilon_r_time = (current_date, epsilon_r)
+        # Get the last modified or creation date and time of the file
+        file_date = os.path.getmtime(file)
+        file_datetime = datetime.datetime.fromtimestamp(file_date).strftime('%Y-%m-%d %H:%M')
         
-        # Append the data to the arrays
-        epsilon_r_values_time.append(epsilon_r_time)
-
+        # Append the file date and epsilon r value to the list
+        epsilon_r_values_time.append((file_datetime, epsilon_r))
+        
+    
     epsilon_r_values_time.sort(key=lambda x: x[0])
     current_date = [date[0] for date in epsilon_r_values_time]
     epsilon_r_values = [value[1] for value in epsilon_r_values_time]
