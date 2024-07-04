@@ -46,13 +46,13 @@ def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distan
     time_ref, time_domain_signal_ref = convert_to_time_domain(freq_ref, re_ref, im_ref)
     
     # Initialize an empty list to store the epsilon r values and time/date tuples
-    time_date = []
-    epsilon_r_values = []
+    epsilon_r_values_time = []
 
     index_ref = np.argmax(abs(time_domain_signal_ref))
-
+    
     # Iterate over each file
     for file in files:
+        
         # Load the data from the file
         freq, re, im = load_data(file)
         
@@ -76,13 +76,17 @@ def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distan
         file_stats = os.stat(file)
         timestamp = max(file_stats.st_ctime, file_stats.st_mtime)
         current_date = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M')
-
+        epsilon_r_time = (current_date, epsilon_r)
         
         # Append the data to the arrays
-        time_date.append(current_date)
-        epsilon_r_values.append(epsilon_r)
+        epsilon_r_values_time.append(epsilon_r_time)
 
-    return time_date, epsilon_r_values
+    epsilon_r_values_time.sort(key=lambda x: x[0])
+    current_date = [date[0] for date in epsilon_r_values_time]
+    epsilon_r_values = [value[1] for value in epsilon_r_values_time]
+    epsilon_r_values = [float(value) for value in epsilon_r_values]
+
+    return current_date, epsilon_r_values
 
 def plot_epsilon_r_over_time(time_date, epsilon_r_values):
     #this function plots epsilon r over time or measurements taken based on the date stamp of the saved touchstone files
@@ -112,7 +116,7 @@ def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imag
     
     # Initialize an empty array for the time domain signal
     freq_resp = np.zeros(num_samples, dtype=complex)
-    time_range = 50
+    time_range = 10
 
     time_range = float(time_range) * 10 ** -9
     # Iterate over each frequency and corresponding real and imaginary parts
