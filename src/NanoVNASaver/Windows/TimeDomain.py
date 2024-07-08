@@ -42,19 +42,6 @@ class TDWindow(QtWidgets.QWidget):
         file_window_layout = QtWidgets.QVBoxLayout()
         make_scrollable(self, file_window_layout)
 
-        User_in_control_box = QtWidgets.QGroupBox("Enter Distance between Antennas")
-        User_in_control_box.setMaximumWidth(350)
-        User_in_control_box_layout = QtWidgets.QFormLayout(User_in_control_box)
-
-        #enter distance between antennas
-        distance_label = QtWidgets.QLabel("Distance (mm):")
-        distance_textfield = QtWidgets.QLineEdit()
-        self.distance = distance_textfield.text()
-        distance_textfield.textChanged.connect(lambda: setattr(self, 'distance', distance_textfield.text()))
-        User_in_control_box_layout.addRow(distance_label, distance_textfield)
-
-        file_window_layout.addWidget(User_in_control_box)
-
         TD_control_box = QtWidgets.QGroupBox("Plotting Time Domain")
         TD_control_box.setMaximumWidth(350)
         TD_control_box_layout = QtWidgets.QFormLayout(TD_control_box)
@@ -75,6 +62,18 @@ class TDWindow(QtWidgets.QWidget):
         permittivity_control_box = QtWidgets.QGroupBox("Calculate Permittivity Based on Current Sweep and Reference")
         permittivity_control_box.setMaximumWidth(350)
         permittivity_control_box_layout = QtWidgets.QFormLayout(permittivity_control_box)
+
+        distance_label = QtWidgets.QLabel("Distance Between Antennas (mm):")
+        distance_textfield = QtWidgets.QLineEdit()
+        self.distance = distance_textfield.text()
+        distance_textfield.textChanged.connect(lambda: setattr(self, 'distance', distance_textfield.text()))
+        permittivity_control_box_layout.addRow(distance_label, distance_textfield)
+
+        ref_permittivity = QtWidgets.QLabel("Reference Relative Permittivity:")
+        ref_perm_textfield = QtWidgets.QLineEdit()
+        self.ref_perm = ref_perm_textfield.text()
+        ref_perm_textfield.textChanged.connect(lambda: setattr(self, 'ref_perm', ref_perm_textfield.text()))
+        permittivity_control_box_layout.addRow(ref_permittivity, ref_perm_textfield)
 
         #s21 calculate permittivity
         btn_calc_perm_inst = QtWidgets.QPushButton("Estimate Relative Permitivity")
@@ -185,7 +184,7 @@ class TDWindow(QtWidgets.QWidget):
     def calculateinstantPermittivity(self, nr_params: int = 0):
         #this function calculates and displays the relative permittivity based on the current sweep and reference data
 
-
+        ref_perm = self.ref_perm
         distance = self.distance
 
         if distance == '':         
@@ -194,9 +193,15 @@ class TDWindow(QtWidgets.QWidget):
             )
             return
         
+        if ref_perm == '':         
+            QtWidgets.QMessageBox.warning(
+                self, "Permittivity Error", "Please enter the relative permittivity of the reference material."
+            )
+            return
+        
         current_data = self.currentSweepData(nr_params)
         ref_data = self.currentRefData(nr_params)
-        eps_r = Calculations.calculate_epsilon_r(current_data, ref_data, float(distance))
+        eps_r = Calculations.calculate_epsilon_r(current_data, ref_data, float(distance), float(ref_perm))
         QtWidgets.QMessageBox.information(
             self, "Permittivity Calculation", f"The estimated relative permittivity (εᵣ) is: {eps_r:.3f}"
         )
@@ -205,12 +210,18 @@ class TDWindow(QtWidgets.QWidget):
     def calcPermittivityOverTime(self):
         #this function calculates and plots multiple epsilon r values from loaded files over time
 
+        ref_perm = self.ref_perm
         distance = self.distance
 
-        
         if distance == '':         
             QtWidgets.QMessageBox.warning(
                 self, "Distance Error", "Please enter a distance between the antennas to calculate the permittivity."
+            )
+            return
+        
+        if ref_perm == '':         
+            QtWidgets.QMessageBox.warning(
+                self, "Permittivity Error", "Please enter the relative permittivity of the reference material."
             )
             return
 
@@ -219,7 +230,7 @@ class TDWindow(QtWidgets.QWidget):
 
         # Prompt the user to select multiple device under test files
         files, _ = QtWidgets.QFileDialog.getOpenFileNames(self, "Select Device Under Test Files")
-        time_date, epsilon_r_vals = Calculations.calculate_epsilon_r_from_files(reference_file, files, float(distance))
+        time_date, epsilon_r_vals = Calculations.calculate_epsilon_r_from_files(reference_file, files, float(distance), float(ref_perm))
         
         # Plot the epsilon r values over time
         Calculations.plot_epsilon_r_over_time(time_date, epsilon_r_vals)

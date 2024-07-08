@@ -11,9 +11,10 @@ import czt
 import tkinter as tk
 import datetime
 from tkinter import filedialog
+import math
 
 
-def calculate_epsilon_r(data1: tuple, data2: tuple, distance: float = 0) -> float:
+def calculate_epsilon_r(data1: tuple, data2: tuple, distance: float = 0, ref_perm: float = 1) -> float:
     #this function finds permittivity from the current sweep and set reference through the software
 
     # Convert the data to time domain for the first set
@@ -31,12 +32,12 @@ def calculate_epsilon_r(data1: tuple, data2: tuple, distance: float = 0) -> floa
     # Calculate the epsilon r value
     c = 3e8
     
-    epsilon_r = (1 + (time_difference * c) / (distance * 10 ** -3)) ** 2
+    epsilon_r = ref_perm * (1 + (time_difference * c) / ((distance * 10 ** -3) * (math.sqrt(ref_perm)))) ** 2
     
     return epsilon_r
 
 
-def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distance: float) -> np.ndarray:
+def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distance: float, ref_perm: float) -> np.ndarray:
     #this function finds epsilon r from the user selected reference file and multiple DUT files
 
     # Load the data from the reference file
@@ -70,7 +71,7 @@ def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distan
     
         # Calculate the epsilon r value
         c=3e8
-        epsilon_r = (1 + (time_difference * c) / (distance * 10 ** -3)) ** 2
+        epsilon_r = ref_perm * (1 + (time_difference * c) / ((distance * 10 ** -3) * (math.sqrt(ref_perm)))) ** 2
         
         # Get the last modified or creation date and time of the file
         file_date = os.path.getmtime(file)
