@@ -1,16 +1,11 @@
 #This module is used to compute the time domain of sweep data, calculate the relative permittivity of a material,
 #and use matplotlib plots to visualize the time domain as well as permittivity calcs over time.
 
-import matplotlib.pyplot as plt
-
-
 import numpy as np
 #need to load filename 
 import os
 import czt
-import tkinter as tk
 import datetime
-from tkinter import filedialog
 import math
 
 
@@ -88,24 +83,6 @@ def calculate_epsilon_r_from_files(reference_file: str, files: list[str], distan
 
     return current_date, epsilon_r_values
 
-def plot_epsilon_r_over_time(time_date, epsilon_r_values):
-    #this function plots epsilon r over time or measurements taken based on the date stamp of the saved touchstone files
-
-    time, epsilon_r = np.array(time_date), np.array(epsilon_r_values)
-    
-    # Plot the epsilon r values over time with markers
-    plt.plot(range(len(time)), np.round(epsilon_r, 3), marker='o', linestyle='-')
-    plt.xticks(range(len(time)), time, rotation=45)
-    plt.xlabel('Time')
-    plt.ylabel('εᵣ')
-    plt.title('Relative Permittivity Over Time')
-    
-    # Display epsilon r values beside the data points
-    for i in range(len(time)):
-        plt.text(i, epsilon_r[i], f'{epsilon_r[i]:.3f}', ha='center', va='bottom')
-    
-    plt.show()
-
 
 def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imaginary_parts: np.ndarray) -> np.ndarray:
     #this function converts the frequency domain data to time domain data using the chirp z transform using 
@@ -127,37 +104,7 @@ def convert_to_time_domain(frequencies: np.ndarray, real_parts: np.ndarray, imag
     return time, time_domain_signal
 
 
-def plot_time_domain(data):
-    #this function plots the time domain data
 
-    # Generate the time axis
-    #time = np.arange(len(time_domain_signal))
-    time, time_domain_signal = convert_to_time_domain(data[0], data[1], data[2])
-    # Plot the time domain signal
-    plt.plot(time * 10 ** 9, np.abs(time_domain_signal))
-    plt.xlabel('Time (ns)')
-    plt.ylabel('Amplitude')
-    plt.title('Time Domain Wave')
-    plt.show()
-
-def plot_time_domain_compare(data1, data2):
-    #this function is used to plot the reference data against the DUT data in the time domain.
-    #data1 is the DUT and data2 is the reference data
-
-    # Convert the data to time domain for the first set
-    time1, time_domain_signal1 = convert_to_time_domain(data1[0], data1[1], data1[2])
-    
-    # Convert the data to time domain for the second set
-    time2, time_domain_signal2 = convert_to_time_domain(data2[0], data2[1], data2[2])
-    
-    # Plot the time domain signals
-    plt.plot(time1 * 10 ** 9, np.abs(time_domain_signal1), label='DUT')
-    plt.plot(time2 * 10 ** 9, np.abs(time_domain_signal2), label='Reference')
-    plt.xlabel('Time (ns)')
-    plt.ylabel('Amplitude')
-    plt.title('Time Domain Reference vs DUT')
-    plt.legend()
-    plt.show()
 
 def load_data(file: str) -> tuple:
     #this function loads the data from a touchstone file and returns the frequency, real, and imaginary parts
@@ -176,25 +123,3 @@ def load_data(file: str) -> tuple:
     
     return np.array(freq), np.array(re), np.array(im)
 
-def main():
-    #this is the main function that executes the program for testing
-    # Ask the user to select the reference file
-    root = tk.Tk()
-    root.withdraw()
-    reference_file = filedialog.askopenfilename(title='Select Reference File')
-    
-    # Ask the user to select the DUT files
-    files = filedialog.askopenfilenames(title='Select DUT Files')
-    
-    # Ask the user for the distance and time range
-    distance = float(input('Enter the distance between the reference and DUT (in mm): '))
-    time_range = float(input('Enter the time range for the time domain conversion (in ns): '))
-    
-    # Calculate the epsilon r values
-    time_date_epsilon_array = calculate_epsilon_r_from_files(reference_file, files, distance)
-    
-    # Plot the epsilon r values over time
-    plot_epsilon_r_over_time(time_date_epsilon_array)
-
-if __name__ == '__main__':
-    main()

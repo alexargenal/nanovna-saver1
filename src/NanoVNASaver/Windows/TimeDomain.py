@@ -25,6 +25,73 @@ from NanoVNASaver.Windows.Defaults import make_scrollable
 from NanoVNASaver.RFTools import Datapoint
 from NanoVNASaver import Calculations
 from NanoVNASaver.Touchstone import Touchstone
+import sys
+import matplotlib
+matplotlib.use('QtAgg')
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+import numpy as np
+
+class MplCanvas(FigureCanvasQTAgg):
+
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        super(MplCanvas, self).__init__(fig)
+
+class MainWindow(QtWidgets.QMainWindow):
+   
+    def __init__(self, app: QtWidgets.QWidget, *args, **kwargs):
+        self.app = app
+        super(MainWindow, self).__init__(self.app, *args, **kwargs)
+
+        # Create the maptlotlib FigureCanvas object,
+        # which defines a single set of axes as self.axes.
+
+        
+    def config_plot_current(self, xdata, ydata):
+        sc = MplCanvas(self, width=5, height=4, dpi=100)
+        sc.axes.plot(xdata* 10 ** 9, np.abs(ydata))
+        sc.axes.set_xlabel('Time (ns)')
+        sc.axes.set_ylabel('Signal Amplitude')
+        sc.axes.set_title('Current Sweep Time Domain')
+
+        
+        self.setCentralWidget(sc)
+        self.show()
+    
+    def config_plot_compare(self, xdata1, ydata1, xdata2, ydata2):
+        sc = MplCanvas(self, width=5, height=4, dpi=100)
+    
+        sc.axes.plot(xdata1* 10 ** 9, np.abs(ydata1), label='Reference')
+        sc.axes.plot(xdata2* 10 ** 9, np.abs(ydata2), label='DUT')
+
+        sc.axes.set_xlabel('Time (ns)')
+        sc.axes.set_ylabel('Signal Amplitude')
+        sc.axes.set_title('Comparing Reference and Current Sweep Time Domain')
+        sc.axes.legend()
+        
+        self.setCentralWidget(sc)
+        self.show()
+
+    def config_plot_epsilon(self, time, epsilon_r):
+
+        sc = MplCanvas(self, width=5, height=4, dpi=100)
+
+        # Plot the epsilon r values over time with markers
+        sc.axes.plot(range(len(time)), np.round(epsilon_r, 3), marker='o', linestyle='-')
+        sc.axes.set_xticks(range(len(time)))
+        sc.axes.set_xticklabels(time, rotation=45)
+        sc.axes.set_xlabel('Time')
+        sc.axes.set_ylabel('εᵣ')
+        sc.axes.set_title('Relative Permittivity Over Time')
+        
+        # Display epsilon r values beside the data points
+        for i in range(len(time)):
+            sc.axes.text(i, epsilon_r[i], f'{epsilon_r[i]:.3f}', ha='center', va='bottom')
+        
+        self.setCentralWidget(sc)
+        self.show()
 
 
 class TDWindow(QtWidgets.QWidget):
@@ -171,14 +238,24 @@ class TDWindow(QtWidgets.QWidget):
 
         #get data from current sweep
         current_data = self.currentSweepData(nr_params)
-        Calculations.plot_time_domain(current_data)
+        time, signal =Calculations.convert_to_time_domain(current_data[0], current_data[1], current_data[2])
+       
+        w = MainWindow(self.app)
+        w.config_plot_current(time, signal)
+        w.show()
+
 
     def plotTDCompare(self, nr_params: int = 0):
         #this function compares the time domain plots of the reference and current sweep data
         
         current_data = self.currentSweepData(nr_params)
         ref_data = self.currentRefData(nr_params)
-        Calculations.plot_time_domain_compare(current_data, ref_data)
+        time1, signal1 =Calculations.convert_to_time_domain(current_data[0], current_data[1], current_data[2])
+        time2, signal2 =Calculations.convert_to_time_domain(ref_data[0], ref_data[1], ref_data[2])
+        w = MainWindow(self.app)
+        w.config_plot_compare(time1, signal1, time2, signal2)
+        w.show()
+       
 
     
     def calculateinstantPermittivity(self, nr_params: int = 0):
@@ -233,4 +310,7 @@ class TDWindow(QtWidgets.QWidget):
         time_date, epsilon_r_vals = Calculations.calculate_epsilon_r_from_files(reference_file, files, float(distance), float(ref_perm))
         
         # Plot the epsilon r values over time
-        Calculations.plot_epsilon_r_over_time(time_date, epsilon_r_vals)
+        w = MainWindow(self.app)
+        w.config_plot_epsilon(time_date, epsilon_r_vals)
+        w.show()
+        
